@@ -1,7 +1,8 @@
 from pdp_utils.pdp_utils.Utils import load_problem, feasibility_check, cost_function
 
 def init_problem(problems, prob_load):
-	problem_file = f'problems/{problems[int(prob_load)]}'
+	problem_file = f'INF273/problems/{problems[int(prob_load)]}'
+	
 	return load_problem(problem_file)
 
 def init_solution(n_vehicles, n_calls):

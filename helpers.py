@@ -1,6 +1,7 @@
 import numpy as np
 from copy import deepcopy
 from random import sample
+from enum import Enum
 
 minus_one = lambda sublist: list(map(lambda x: x-1, sublist))
 
@@ -59,7 +60,7 @@ def insert_number_at_all_positions_pick_first(original_list, to_vessel, from_ves
 	add_elem_to(original_list, number_to_insert, from_vessel)
 	return False, original_list
 
-def insert_number_at_all_positions_pick_best(original_list, to_vessel, from_vessel, number_to_insert, prob):
+def insert_number_at_all_positions_pick_best(original_list, to_vessel, from_vessel, number_to_insert, prob, memo):
 	l = []
 	sol_copy = deepcopy(original_list)
 	for i in range(len(original_list[to_vessel]) + 1):
@@ -68,8 +69,11 @@ def insert_number_at_all_positions_pick_best(original_list, to_vessel, from_vess
 			new_list.insert(i, number_to_insert)
 			new_list.insert(j, number_to_insert)
 			sol_copy[to_vessel] = new_list
+			if tuple(new_list) in memo:
+				continue
 			if feasability_one_vessel(new_list, prob, to_vessel)[0]:
 				l.append(new_list)
+			memo.add(tuple(new_list))
 	if not l:
 		add_elem_to(original_list, number_to_insert, from_vessel)
 		return False, original_list
@@ -107,7 +111,7 @@ def find_most_expensive_cargo_to_move(list_solution, prob, memo):
 	# memo.add((most_expensive[-1][1], most_expensive[-1][2]))
 	return most_expensive[-1][1], most_expensive[-1][2], most_expensive
 
-def Move_x_to_outsource(list_solution, x, prob, memo):
+def Move_x_to_outsource(list_solution, x, prob):
 	n_vehicles = prob['n_vehicles']
 	n_calls = prob['n_calls']
 	copy = deepcopy(list_solution)
@@ -183,7 +187,13 @@ def cost_one_vessel(sublist, prob, vessel_num, is_outsource=False):
 		return RouteTravelCost + CostInPorts
 
 
-def feasability_one_vessel(sublist, prob, vessel_num):
+class ReasonNotFeasible(Enum):
+	call_in_vehicle_not_allowed = 1
+	vehicle_overloaded = 2
+	time_window_wrong = 3
+	time_window_wrong_specific = 4
+
+def feasability_one_vessel(sublist, prob, vessel_num, spesific_cargo=None):
 	Cargo = prob['Cargo']
 	TravelTime = prob['TravelTime']
 	FirstTravelTime = prob['FirstTravelTime']
@@ -193,7 +203,7 @@ def feasability_one_vessel(sublist, prob, vessel_num):
 	VesselCargo = prob['VesselCargo']
 
 	feasability = True
-	c = 'feasible'
+	c = ""
 
 	currentVPlan = minus_one(sublist)
 
@@ -203,7 +213,7 @@ def feasability_one_vessel(sublist, prob, vessel_num):
 		
 		if not np.all(VesselCargo[vessel_num, currentVPlan]):
 			feasability = False
-			c = 'incompatible vessel and cargo'
+			c = ReasonNotFeasible.call_in_vehicle_not_allowed
 			return feasability, c
 		Load_size = 0
 		currentTime = 0
@@ -215,7 +225,7 @@ def feasability_one_vessel(sublist, prob, vessel_num):
 		Load_size = Load_size[Indx]
 		if np.any(VesselCapacity[vessel_num] - np.cumsum(Load_size) < 0):
 			feasability = False
-			c = 'Capacity exceeded'
+			c = ReasonNotFeasible.vehicle_overloaded
 			return feasability, c
 		Timewindows = np.zeros((2, NoDoubleCallOnVehicle))
 		Timewindows[0] = Cargo[sortedRout, 6]
@@ -242,7 +252,10 @@ def feasability_one_vessel(sublist, prob, vessel_num):
 			ArriveTime[j] = np.max((currentTime + routeTravelTime[j], Timewindows[0, j]))
 			if ArriveTime[j] > Timewindows[1, j]:
 				feasability = False
-				c = 'Time window exceeded'
+				c = ReasonNotFeasible.time_window_wrong
+				if spesific_cargo != None:
+					if spesific_cargo == currentVPlan[j]:
+						c = ReasonNotFeasible.time_window_wrong_specific
 				return feasability, c
 
 			currentTime = ArriveTime[j] + LU_Time[j]

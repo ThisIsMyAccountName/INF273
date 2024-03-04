@@ -80,10 +80,27 @@ def optimize_solution(org_solution, prob, cargo_dict, feas_memo, temperature, a,
 
 
 		incumbent_copy = deepcopy(incumbent)
-		cargo_to_move, move_from, poss_moves = find_cargo_to_move(incumbent_copy, prob, memo, poss_moves)
-		remove_elem_from(incumbent_copy, cargo_to_move, move_from)
-		move_to = sample(cargo_dict[cargo_to_move], 1)[0]
-		feasebility, new_sol = insert_number_at_all_positions_pick_first(incumbent_copy, move_to, move_from, cargo_to_move, prob, feas_memo)
+
+		choice = randint(1, 3)
+		# choice = 1
+		if choice == 1:
+			cargo_to_move, move_from, poss_moves = find_cargo_to_move(incumbent_copy, prob, memo, poss_moves)
+			remove_elem_from(incumbent_copy, cargo_to_move, move_from)
+			move_to = sample(cargo_dict[cargo_to_move], 1)[0]
+			feasebility, new_sol = insert_number_at_all_positions_pick_first(incumbent_copy, move_to, move_from, cargo_to_move, prob, feas_memo)
+		elif choice == 2:
+			cargo_to_move, move_from, poss_moves = pick_random_cargo(incumbent_copy)
+			remove_elem_from(incumbent_copy, cargo_to_move, move_from)
+			move_to = sample(cargo_dict[cargo_to_move], 1)[0]
+			feasebility, new_sol = insert_number_at_all_positions_pick_first(incumbent_copy, move_to, move_from, cargo_to_move, prob, feas_memo)
+		elif choice == 3:
+			# cargo_to_move, move_from, poss_moves = pick_random_cargo(incumbent_copy)
+			cargo_to_move, move_from, poss_moves = find_cargo_to_move(incumbent_copy, prob, memo, poss_moves)
+			remove_elem_from(incumbent_copy, cargo_to_move, move_from)
+			move_to = sample(cargo_dict[cargo_to_move], 1)[0]
+			feasebility, new_sol = insert_number_at_all_positions_pick_best(incumbent_copy, move_to, move_from, cargo_to_move, prob, feas_memo)
+
+		
 		new_cost = cost_function(list_to_solution(new_sol), prob)
 		E = new_cost - old_cost
 		old_cost = new_cost
@@ -217,7 +234,7 @@ def run_tests(num_tests, iterations, warmup, prob, print_iter=False, feasability
 
 def main():
 	num_tests = 1
-	prob_load = 6
+	prob_load = 2
 	warmup = 100
 	total_iterations = 10000 - warmup
 	should_print_sol = True
