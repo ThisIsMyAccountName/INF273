@@ -195,6 +195,33 @@ def cost_one_vessel(sublist, prob, vessel_num, is_outsource=False):
 		CostInPorts = np.sum(PortCost[vessel_num, cur_vehicle]) / 2
 
 		return RouteTravelCost + CostInPorts
+	
+def travel_cost_one_vessel(sublist, prob, vessel_num, is_outsource=False):
+	Cargo =	prob['Cargo']
+	TravelCost = prob['TravelCost']
+	FirstTravelCost = prob['FirstTravelCost']
+	PortCost = prob['PortCost']
+	if not sublist:
+		return 0
+	cur_vehicle = np.array(list(map(lambda x: x-1, sublist)))
+	if is_outsource:
+		outsource_cost = np.sum(Cargo[cur_vehicle, 3]) / 2
+		return outsource_cost
+	if len(cur_vehicle) > 0:
+		sortRout = np.sort(cur_vehicle, kind='mergesort')
+		I = np.argsort(cur_vehicle, kind='mergesort')
+		Indx = np.argsort(I, kind='mergesort')
+
+		PortIndex = Cargo[sortRout, 0].astype(int)
+		PortIndex[::2] = Cargo[sortRout[::2], 0]
+		PortIndex = PortIndex[Indx] - 1
+
+		Diag = TravelCost[vessel_num, PortIndex[:-1], PortIndex[1:]]
+
+		FirstVisitCost = FirstTravelCost[vessel_num, int(Cargo[cur_vehicle[0], 0] - 1)]
+		RouteTravelCost = np.sum(np.hstack((FirstVisitCost, Diag.flatten())))
+
+		return RouteTravelCost
 
 def feasability_one_vessel(sublist, prob, vessel_num, spesific_cargo=None):
 	Cargo = prob['Cargo']

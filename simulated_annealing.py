@@ -84,6 +84,7 @@ def optimize_solution(org_solution, prob, cargo_dict, feas_memo, temperature, a,
 		
 		scaler = randint(1, 3)
 		if non_impoving > n_calls * scaler:
+			print("Moving to outsource")
 			incumbent = Move_x_to_outsource(incumbent, scaler, prob)
 			times_moved += scaler
 			non_impoving = 0
@@ -122,7 +123,7 @@ def optimize_solution(org_solution, prob, cargo_dict, feas_memo, temperature, a,
 
 def make_move(incumbent_copy, prob, cargo_dict, feas_memo, poss_moves):
 	choice = randint(1, 5)
-	# choice = 1
+	choice = 1
 	if choice == 1:
 		cargo_to_move, move_from, poss_moves = find_cargo_to_move(incumbent_copy, prob, poss_moves)
 		remove_elem_from(incumbent_copy, cargo_to_move, move_from)
@@ -218,9 +219,9 @@ def run_tests(num_tests, iterations, warmup, prob, print_iter=False, feasability
 
 def main():
 	num_tests = 1
-	prob_load = 0
+	prob_load = 3
 	warmup = 100
-	total_iterations = 10000 - warmup
+	total_iterations = 1000 - warmup
 	should_print_sol = True
 	should_print_iter = True
 	problems = ['Call_7_Vehicle_3.txt', 'Call_7_Vehicle_3.txt', 'Call_18_Vehicle_5.txt',
