@@ -173,6 +173,10 @@ def cost_one_vessel(sublist, prob, vessel_num, is_outsource=False):
 	TravelCost = prob['TravelCost']
 	FirstTravelCost = prob['FirstTravelCost']
 	PortCost = prob['PortCost']
+	costs = prob['oneVesselCosts']
+	tuple_sublist = tuple(sublist)
+	if tuple_sublist in costs:
+		return costs[tuple_sublist]
 	if not sublist:
 		return 0
 	cur_vehicle = np.array(list(map(lambda x: x-1, sublist)))
@@ -194,6 +198,7 @@ def cost_one_vessel(sublist, prob, vessel_num, is_outsource=False):
 		RouteTravelCost = np.sum(np.hstack((FirstVisitCost, Diag.flatten())))
 		CostInPorts = np.sum(PortCost[vessel_num, cur_vehicle]) / 2
 
+		costs[tuple_sublist] = RouteTravelCost + CostInPorts
 		return RouteTravelCost + CostInPorts
 	
 def travel_cost_one_vessel(sublist, prob, vessel_num, is_outsource=False):
@@ -201,11 +206,15 @@ def travel_cost_one_vessel(sublist, prob, vessel_num, is_outsource=False):
 	TravelCost = prob['TravelCost']
 	FirstTravelCost = prob['FirstTravelCost']
 	PortCost = prob['PortCost']
+	costs = prob['oneVesselCosts']
+	if (tuple(sublist), vessel_num) in costs:
+		return costs[(tuple(sublist), vessel_num)]
 	if not sublist:
 		return 0
 	cur_vehicle = np.array(list(map(lambda x: x-1, sublist)))
 	if is_outsource:
 		outsource_cost = np.sum(Cargo[cur_vehicle, 3]) / 2
+		costs[(tuple(sublist), vessel_num)] = outsource_cost
 		return outsource_cost
 	if len(cur_vehicle) > 0:
 		sortRout = np.sort(cur_vehicle, kind='mergesort')
@@ -221,8 +230,9 @@ def travel_cost_one_vessel(sublist, prob, vessel_num, is_outsource=False):
 		FirstVisitCost = FirstTravelCost[vessel_num, int(Cargo[cur_vehicle[0], 0] - 1)]
 		RouteTravelCost = np.sum(np.hstack((FirstVisitCost, Diag.flatten())))
 
+		costs[(tuple(sublist), vessel_num)] = RouteTravelCost
 		return RouteTravelCost
-
+	
 def feasability_one_vessel(sublist, prob, vessel_num, spesific_cargo=None):
 	Cargo = prob['Cargo']
 	TravelTime = prob['TravelTime']
@@ -231,10 +241,14 @@ def feasability_one_vessel(sublist, prob, vessel_num, spesific_cargo=None):
 	LoadingTime = prob['LoadingTime']
 	UnloadingTime = prob['UnloadingTime']
 	VesselCargo = prob['VesselCargo']
+	feasabilityDict = prob['feasabilityDict']
 
 	feasability = True
 	c = ""
-
+	hashable_solution = tuple(sublist)
+	if (hashable_solution, vessel_num) in feasabilityDict:
+		return feasabilityDict[(hashable_solution, vessel_num)]
+	
 	currentVPlan = minus_one(sublist)
 
 	NoDoubleCallOnVehicle = len(currentVPlan)
@@ -256,6 +270,7 @@ def feasability_one_vessel(sublist, prob, vessel_num, spesific_cargo=None):
 		if np.any(VesselCapacity[vessel_num] - np.cumsum(Load_size) < 0):
 			feasability = False
 			c = "Vessel capacity exceeded"
+			feasabilityDict[(hashable_solution, vessel_num)] = feasability, c
 			return feasability, c
 		Timewindows = np.zeros((2, NoDoubleCallOnVehicle))
 		Timewindows[0] = Cargo[sortedRout, 6]
@@ -283,11 +298,12 @@ def feasability_one_vessel(sublist, prob, vessel_num, spesific_cargo=None):
 			if ArriveTime[j] > Timewindows[1, j]:
 				feasability = False
 				c = "Time window wrong"
-				if spesific_cargo != None:
-					if spesific_cargo == currentVPlan[j]:
-						c = "Time window wrong for given cargo"
+				
+				if spesific_cargo == currentVPlan[j]:
+					c = "Time window wrong for given cargo"
+				feasabilityDict[(hashable_solution, vessel_num)] = feasability, c
 				return feasability, c
 
 			currentTime = ArriveTime[j] + LU_Time[j]
-
+		feasabilityDict[(hashable_solution, vessel_num)] = feasability, c
 	return feasability, c
